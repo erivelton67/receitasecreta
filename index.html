@@ -715,45 +715,46 @@ function renderQuestion(idx) {
   const footer = document.getElementById('quiz-footer');
   const hasAnswer = answers[idx] !== null;
 
-  if (isFirst) {
-    footer.innerHTML = `
-      <button class="btn-next-solo ${hasAnswer ? 'enabled' : ''}" id="btn-next" onclick="nextQuestion()">
-        Continuar &nbsp;→
-      </button>
-    `;
-  } else if (isLast) {
+  if (isLast) {
+    // Q7: lead DEVE clicar no botão para avançar
     footer.innerHTML = `
       <button class="btn-back" onclick="prevQuestion()">← &nbsp;Voltar</button>
       <button class="btn-next ${hasAnswer ? 'enabled' : ''}" id="btn-next" onclick="nextQuestion()">
         ✨ Ver meu potencial
       </button>
     `;
+  } else if (isFirst) {
+    // Q1: sem botão Voltar, sem botão Continuar — clique na opção avança
+    footer.innerHTML = `
+      <div style="height:52px"></div>
+    `;
   } else {
+    // Q2-Q6: só botão Voltar visível — clique na opção avança
     footer.innerHTML = `
       <button class="btn-back" onclick="prevQuestion()">← &nbsp;Voltar</button>
-      <button class="btn-next ${hasAnswer ? 'enabled' : ''}" id="btn-next" onclick="nextQuestion()">
-        Continuar &nbsp;→
-      </button>
+      <div style="flex:1"></div>
     `;
   }
 }
 
 function selectOption(i) {
   answers[currentQ] = i;
-  // Update UI
+  // Atualiza visual das opções
   document.querySelectorAll('.option-btn').forEach((btn, idx) => {
     btn.classList.toggle('selected', idx === i);
     btn.querySelector('.radio-circle').style.borderColor = idx === i ? 'var(--cyan)' : '';
     btn.querySelector('.radio-circle').style.background  = idx === i ? 'var(--cyan)' : '';
   });
-  // Enable next btn
-  const btn = document.getElementById('btn-next');
-  if (btn) btn.classList.add('enabled');
 
-  // Auto-advance only on questions 1-6; on q7 the lead must click manually
   const isLast = currentQ === questions.length - 1;
-  if (!isLast) {
-    setTimeout(() => nextQuestion(), 420);
+
+  if (isLast) {
+    // Q7: só habilita o botão, lead precisa clicar
+    const btn = document.getElementById('btn-next');
+    if (btn) btn.classList.add('enabled');
+  } else {
+    // Q1-Q6: clique na opção já avança (sem botão Continuar)
+    setTimeout(() => nextQuestion(), 350);
   }
 }
 
