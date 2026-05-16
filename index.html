@@ -336,7 +336,7 @@
   }
 
   .result-header {
-    padding: 28px 24px 0;
+    padding: 28px 20px 16px;
     flex-shrink: 0;
   }
   .result-title {
@@ -356,21 +356,21 @@
 
   /* ── VIDEO PLAYER ── */
   .video-container {
-    margin: 0 20px;
-    border-radius: 16px;
+    margin: 0;
+    border-radius: 0;
     overflow: hidden;
     background: #000;
     position: relative;
-    aspect-ratio: 9/16;
-    max-height: 340px;
-    border: 1.5px solid var(--border);
+    width: 100%;
+    /* height set by JS to maintain 9:16 */
   }
 
   .video-container video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
+    background: #000;
   }
 
   /* Custom player controls */
@@ -735,8 +735,11 @@ function selectOption(i) {
   const btn = document.getElementById('btn-next');
   if (btn) btn.classList.add('enabled');
 
-  // Auto-advance after short delay
-  setTimeout(() => nextQuestion(), 420);
+  // Auto-advance only on questions 1-6; on q7 the lead must click manually
+  const isLast = currentQ === questions.length - 1;
+  if (!isLast) {
+    setTimeout(() => nextQuestion(), 420);
+  }
 }
 
 function nextQuestion() {
@@ -771,6 +774,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+  if (id === 'result-screen') setTimeout(setVideoHeight, 50);
 }
 
 /* ════════════════════════════════════
@@ -866,6 +870,18 @@ function goToCheckout() {
    INIT
 ════════════════════════════════════ */
 renderQuestion(0);
+
+// Set video container height: full width × (16/9), capped so header+CTA still visible
+function setVideoHeight() {
+  const container = document.getElementById('video-container');
+  if (!container) return;
+  const vw = window.innerWidth;
+  const natural169 = vw * (16 / 9);
+  // Leave ~180px for header + CTA + security text
+  const maxH = window.innerHeight - 180;
+  container.style.height = Math.min(natural169, maxH) + 'px';
+}
+window.addEventListener('resize', setVideoHeight);
 </script>
 </body>
 </html>
