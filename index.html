@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Diagnóstico Personalizado</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --card: #131c2e;
+    --card2: #1a2540;
+    --cyan: #00c8e0;
+    --cyan2: #00a8c0;
+    --text: #e8eaf0;
+    --muted: #8892a4;
+    --border: #1e2d45;
+    --selected-bg: rgba(0,200,224,0.10);
+    --selected-border: #00c8e0;
+    --radius: 14px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: 'Sora', sans-serif;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    flex-direction: column;
+    background: var(--bg);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen.active { display: flex; }
+
+  /* ── QUIZ SCREEN ── */
+  #quiz-screen {
+    padding: 0;
+  }
+
+  .quiz-header {
+    padding: 20px 20px 0;
+    flex-shrink: 0;
+  }
+
+  .quiz-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 14px;
+    letter-spacing: -0.3px;
+  }
+  .quiz-title span { color: var(--cyan); }
+
+  .progress-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .progress-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .progress-pct {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .progress-bar-track {
+    height: 4px;
+    background: var(--card2);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 0;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan2), var(--cyan));
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(.4,0,.2,1);
+  }
+
+  .quiz-body {
+    flex: 1;
+    padding: 28px 20px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .question-text {
+    font-size: 19px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    line-height: 1.4;
+    margin-bottom: 28px;
+  }
+
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .option-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .option-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,200,224,0);
+    transition: background 0.18s;
+  }
+  .option-btn:active::after {
+    background: rgba(0,200,224,0.07);
+  }
+  .option-btn.selected {
+    border-color: var(--selected-border);
+    background: var(--selected-bg);
+  }
+  .option-btn.selected .radio-circle {
+    border-color: var(--cyan);
+    background: var(--cyan);
+  }
+  .option-btn.selected .radio-circle::after {
+    opacity: 1;
+  }
+
+  .radio-circle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--muted);
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .radio-circle::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.18s;
+  }
+
+  .option-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .option-btn.selected .option-label {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ── QUIZ FOOTER ── */
+  .quiz-footer {
+    padding: 16px 20px 32px;
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .btn-back {
+    flex: 0 0 100px;
+    height: 52px;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s;
+  }
+  .btn-back:active { opacity: 0.7; }
+
+  .btn-next {
+    flex: 1;
+    height: 52px;
+    background: var(--card2);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s;
+  }
+  .btn-next.enabled {
+    background: linear-gradient(135deg, var(--cyan2), var(--cyan));
+    color: #0a0e1a;
+  }
+  .btn-next:active { opacity: 0.85; }
+
+  .btn-next-solo {
+    width: 100%;
+    height: 52px;
+    background: var(--card2);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s;
+  }
+  .btn-next-solo.enabled {
+    background: linear-gradient(135deg, var(--cyan2), var(--cyan));
+    color: #0a0e1a;
+  }
+
+  /* ── LOADING SCREEN ── */
+  #loading-screen {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 32px;
+  }
+
+  .lupa-wrapper {
+    font-size: 48px;
+    margin-bottom: 28px;
+    position: relative;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lupa-emoji {
+    font-size: 48px;
+    animation: lupaScan 1.8s ease-in-out infinite;
+    display: inline-block;
+    transform-origin: center;
+  }
+  @keyframes lupaScan {
+    0%   { transform: translate(0,0) rotate(-10deg); }
+    20%  { transform: translate(6px,-4px) rotate(5deg); }
+    40%  { transform: translate(-4px,6px) rotate(-8deg); }
+    60%  { transform: translate(8px,2px) rotate(10deg); }
+    80%  { transform: translate(-6px,-2px) rotate(-5deg); }
+    100% { transform: translate(0,0) rotate(-10deg); }
+  }
+
+  .loading-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 14px;
+  }
+  .loading-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 40px;
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .spinner-wrap {
+    margin-bottom: 24px;
+  }
+  .spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(0,200,224,0.15);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    margin: 0 auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-aguarde {
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* ── RESULT SCREEN ── */
+  #result-screen {
+    padding: 0;
+  }
+
+  .result-header {
+    padding: 28px 24px 0;
+    flex-shrink: 0;
+  }
+  .result-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.3;
+    margin-bottom: 10px;
+  }
+  .result-title span { color: var(--cyan); }
+  .result-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  /* ── VIDEO PLAYER ── */
+  .video-container {
+    margin: 0 20px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    position: relative;
+    aspect-ratio: 9/16;
+    max-height: 340px;
+    border: 1.5px solid var(--border);
+  }
+
+  .video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Custom player controls */
+  .video-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    padding: 20px 14px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .play-pause-btn {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .play-pause-btn svg { width: 20px; height: 20px; }
+
+  .time-display {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    font-family: 'Sora', sans-serif;
+    flex-shrink: 0;
+    min-width: 68px;
+  }
+
+  .seek-bar-wrap {
+    flex: 1;
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .seek-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 99px;
+    position: relative;
+    overflow: hidden;
+  }
+  .seek-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan2), var(--cyan));
+    border-radius: 99px;
+    width: 0%;
+    transition: width 0.3s linear;
+  }
+
+  .volume-btn {
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .volume-btn svg { width: 18px; height: 18px; }
+
+  /* CTA area */
+  .result-cta {
+    padding: 20px 20px 32px;
+    flex-shrink: 0;
+  }
+
+  .cta-unlock-btn {
+    width: 100%;
+    height: 54px;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: not-allowed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    transition: all 0.4s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cta-unlock-btn.unlocked {
+    background: linear-gradient(135deg, #00a8c0, var(--cyan));
+    border-color: transparent;
+    color: #0a0e1a;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 15px;
+    box-shadow: 0 8px 30px rgba(0,200,224,0.35);
+    animation: pulse-glow 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 8px 30px rgba(0,200,224,0.35); }
+    50% { box-shadow: 0 8px 45px rgba(0,200,224,0.6); }
+  }
+
+  .cta-security {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+  }
+  .cta-security span {
+    color: rgba(0,200,224,0.7);
+  }
+
+  /* ── FADE IN ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .screen.active .quiz-body,
+  .screen.active .quiz-header {
+    animation: fadeInUp 0.35s ease both;
+  }
+
+  /* ── SCROLLBAR hide ── */
+  .screen::-webkit-scrollbar { display: none; }
+  .screen { -ms-overflow-style: none; scrollbar-width: none; }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     QUIZ SCREEN
+══════════════════════════════════════════ -->
+<div id="quiz-screen" class="screen active">
+  <div class="quiz-header">
+    <div class="quiz-title">Diagnóstico <span>Personalizado</span></div>
+    <div class="progress-row">
+      <span class="progress-label" id="progress-label">Pergunta 1 de 7</span>
+      <span class="progress-pct" id="progress-pct">14% completo</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-bar" style="width:14%"></div>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quiz-body">
+    <!-- injected by JS -->
+  </div>
+
+  <div class="quiz-footer" id="quiz-footer">
+    <!-- injected by JS -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LOADING SCREEN
+══════════════════════════════════════════ -->
+<div id="loading-screen" class="screen">
+  <div class="lupa-wrapper">
+    <span class="lupa-emoji">🔍</span>
+  </div>
+  <div class="loading-title">Analisando seu resultado...</div>
+  <div class="loading-sub">
+    Estamos preparando seu protocolo personalizado com base nas suas respostas.
+  </div>
+  <div class="spinner-wrap">
+    <div class="spinner"></div>
+  </div>
+  <div class="loading-aguarde">Aguarde... seu acesso está sendo liberado.</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     RESULT SCREEN
+══════════════════════════════════════════ -->
+<div id="result-screen" class="screen">
+  <div class="result-header">
+    <div class="result-title">Seu diagnóstico está <span>pronto</span></div>
+    <div class="result-sub">Assista ao vídeo completo abaixo para liberar seu acesso.</div>
+  </div>
+
+  <div class="video-container" id="video-container">
+    <video
+      id="main-video"
+      src="https://metodotripe.shop/wp-content/uploads/2026/05/WhatsApp-Video-2026-05-16-at-17.05.22.mp4"
+      playsinline
+      webkit-playsinline
+      preload="metadata"
+    ></video>
+
+    <!-- Custom Controls -->
+    <div class="video-controls" id="video-controls">
+      <button class="play-pause-btn" id="play-pause-btn" onclick="togglePlay()">
+        <!-- Play icon -->
+        <svg id="icon-play" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <!-- Pause icon hidden -->
+        <svg id="icon-pause" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg" style="display:none">
+          <path d="M6 19h4V5H6zm8-14v14h4V5z"/>
+        </svg>
+      </button>
+
+      <div class="seek-bar-wrap" id="seek-bar" onclick="seekVideo(event)">
+        <div class="seek-track">
+          <div class="seek-fill" id="seek-fill"></div>
+        </div>
+      </div>
+
+      <div class="time-display" id="time-display">0:00 / 1:43</div>
+
+      <button class="volume-btn" id="volume-btn" onclick="toggleMute()">
+        <svg id="icon-vol" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+        </svg>
+        <svg id="icon-mute" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)" xmlns="http://www.w3.org/2000/svg" style="display:none">
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="result-cta">
+    <button class="cta-unlock-btn" id="cta-btn" onclick="goToCheckout()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+      </svg>
+      Assista o vídeo completo para liberar
+    </button>
+    <div class="cta-security">
+      <span>🔒</span> Acesso imediato após o pagamento. <span>100% seguro e confidencial.</span>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ════════════════════════════════════
+   QUIZ DATA
+════════════════════════════════════ */
+const questions = [
+  {
+    text: "Qual é a sua idade?",
+    options: ["Entre 18 e 25 anos","Entre 26 e 35 anos","Entre 36 e 50 anos","Entre 51 e 65 anos"]
+  },
+  {
+    text: "Qual é o tamanho aproximado do seu membro em ereção?",
+    options: ["Menos de 12 cm","De 12 a 14 cm","De 14 a 16 cm","Mais de 16 cm"]
+  },
+  {
+    text: "Você costuma acordar com ereção matinal?",
+    options: ["Quase nunca","Raramente","Às vezes","Quase sempre"]
+  },
+  {
+    text: "Como é a sua alimentação diária?",
+    options: ["Só comida ruim","50% comida ruim, 50% saudável","Tento comer bem na maioria das vezes","Dieta equilibrada e saudável"]
+  },
+  {
+    text: "Quantas horas você dorme por noite?",
+    options: ["Menos de 5 horas","De 5 a 6 horas","De 6 a 7 horas","Mais de 8 horas"]
+  },
+  {
+    text: "Você pratica atividade física?",
+    options: ["Nunca","1 vez por semana ou menos","De 2 a 3 vezes por semana","4 vezes ou mais por semana"]
+  },
+  {
+    text: "Você já tentou algum método natural para aumentar o membro?",
+    options: ["Nunca ouvi falar","Já ouvi falar, mas nunca tentei","Já tentei, mas sem consistência","Sim, com disciplina"]
+  }
+];
+
+const progressSteps = [14, 29, 43, 57, 71, 86, 100];
+
+let currentQ = 0;
+let answers = new Array(questions.length).fill(null);
+
+/* ════════════════════════════════════
+   RENDER QUESTION
+════════════════════════════════════ */
+function renderQuestion(idx) {
+  const q = questions[idx];
+  const isFirst = idx === 0;
+  const isLast  = idx === questions.length - 1;
+  const pct     = progressSteps[idx];
+
+  // Header
+  document.getElementById('progress-label').textContent = `Pergunta ${idx+1} de 7`;
+  document.getElementById('progress-pct').textContent   = `${pct}% completo`;
+  document.getElementById('progress-bar').style.width   = pct + '%';
+
+  // Body
+  const body = document.getElementById('quiz-body');
+  body.style.animation = 'none';
+  void body.offsetWidth;
+  body.style.animation = '';
+
+  let optionsHTML = q.options.map((opt, i) => `
+    <button class="option-btn${answers[idx] === i ? ' selected' : ''}"
+            onclick="selectOption(${i})"
+            data-idx="${i}">
+      <div class="radio-circle"></div>
+      <span class="option-label">${opt}</span>
+    </button>
+  `).join('');
+
+  body.innerHTML = `
+    <div class="question-text">${q.text}</div>
+    <div class="options-list">${optionsHTML}</div>
+  `;
+
+  // Footer
+  const footer = document.getElementById('quiz-footer');
+  const hasAnswer = answers[idx] !== null;
+
+  if (isFirst) {
+    footer.innerHTML = `
+      <button class="btn-next-solo ${hasAnswer ? 'enabled' : ''}" id="btn-next" onclick="nextQuestion()">
+        Continuar &nbsp;→
+      </button>
+    `;
+  } else if (isLast) {
+    footer.innerHTML = `
+      <button class="btn-back" onclick="prevQuestion()">← &nbsp;Voltar</button>
+      <button class="btn-next ${hasAnswer ? 'enabled' : ''}" id="btn-next" onclick="nextQuestion()">
+        ✨ Ver meu potencial
+      </button>
+    `;
+  } else {
+    footer.innerHTML = `
+      <button class="btn-back" onclick="prevQuestion()">← &nbsp;Voltar</button>
+      <button class="btn-next ${hasAnswer ? 'enabled' : ''}" id="btn-next" onclick="nextQuestion()">
+        Continuar &nbsp;→
+      </button>
+    `;
+  }
+}
+
+function selectOption(i) {
+  answers[currentQ] = i;
+  // Update UI
+  document.querySelectorAll('.option-btn').forEach((btn, idx) => {
+    btn.classList.toggle('selected', idx === i);
+    btn.querySelector('.radio-circle').style.borderColor = idx === i ? 'var(--cyan)' : '';
+    btn.querySelector('.radio-circle').style.background  = idx === i ? 'var(--cyan)' : '';
+  });
+  // Enable next btn
+  const btn = document.getElementById('btn-next');
+  if (btn) btn.classList.add('enabled');
+
+  // Auto-advance after short delay
+  setTimeout(() => nextQuestion(), 420);
+}
+
+function nextQuestion() {
+  if (answers[currentQ] === null) return;
+  if (currentQ < questions.length - 1) {
+    currentQ++;
+    renderQuestion(currentQ);
+  } else {
+    showLoading();
+  }
+}
+
+function prevQuestion() {
+  if (currentQ > 0) {
+    currentQ--;
+    renderQuestion(currentQ);
+  }
+}
+
+/* ════════════════════════════════════
+   LOADING → RESULT
+════════════════════════════════════ */
+function showLoading() {
+  showScreen('loading-screen');
+  setTimeout(() => {
+    showScreen('result-screen');
+    initVideo();
+  }, 3800);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+/* ════════════════════════════════════
+   VIDEO PLAYER
+════════════════════════════════════ */
+const VIDEO_DURATION = 102; // 1:42 em segundos
+let videoUnlocked = false;
+let countdownInterval = null;
+
+function initVideo() {
+  const video = document.getElementById('main-video');
+
+  video.addEventListener('timeupdate', () => {
+    const pct = (video.currentTime / (video.duration || VIDEO_DURATION)) * 100;
+    document.getElementById('seek-fill').style.width = pct + '%';
+    document.getElementById('time-display').textContent =
+      formatTime(video.currentTime) + ' / ' + formatTime(video.duration || VIDEO_DURATION);
+
+    // Unlock when video ends (or 95% watched)
+    if (!videoUnlocked && pct >= 98) {
+      unlockCTA();
+    }
+  });
+
+  video.addEventListener('play', () => {
+    document.getElementById('icon-play').style.display  = 'none';
+    document.getElementById('icon-pause').style.display = 'block';
+  });
+
+  video.addEventListener('pause', () => {
+    document.getElementById('icon-play').style.display  = 'block';
+    document.getElementById('icon-pause').style.display = 'none';
+  });
+
+  video.addEventListener('ended', () => {
+    document.getElementById('icon-play').style.display  = 'block';
+    document.getElementById('icon-pause').style.display = 'none';
+    unlockCTA();
+  });
+
+  // Start playing
+  video.play().catch(() => {});
+}
+
+function togglePlay() {
+  const video = document.getElementById('main-video');
+  if (video.paused) video.play();
+  else video.pause();
+}
+
+function toggleMute() {
+  const video = document.getElementById('main-video');
+  video.muted = !video.muted;
+  document.getElementById('icon-vol').style.display  = video.muted ? 'none'  : 'block';
+  document.getElementById('icon-mute').style.display = video.muted ? 'block' : 'none';
+}
+
+function seekVideo(e) {
+  const video = document.getElementById('main-video');
+  const bar   = document.getElementById('seek-bar');
+  const rect  = bar.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  video.currentTime = ratio * (video.duration || VIDEO_DURATION);
+}
+
+function formatTime(s) {
+  if (isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2,'0');
+}
+
+function unlockCTA() {
+  if (videoUnlocked) return;
+  videoUnlocked = true;
+  const btn = document.getElementById('cta-btn');
+  btn.classList.add('unlocked');
+  btn.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+    </svg>
+    Quero meu acesso agora →
+  `;
+  btn.style.cursor = 'pointer';
+}
+
+function goToCheckout() {
+  if (!videoUnlocked) return;
+  window.location.href = 'https://paylume.fans/c/tripe-luc-org';
+}
+
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+renderQuestion(0);
+</script>
+</body>
+</html>
